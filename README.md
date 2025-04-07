@@ -5,11 +5,10 @@ Este repositório contém a implementação do projeto **FTCP (File Transfer Cus
 ## Equipe
 
 - **Integrante 1:** [Nome Completo do Aluno 1]  
-- **Integrante 2:** [Nome Completo do Aluno 2]  
+- **Integrante 2:** [Nome Completo do Aluno 2] 
 - **Integrante 3:** [Nome Completo do Aluno 3]  
-- **Integrante 3:** [Nome Completo do Aluno 4]
-  
-*(Adicione mais linhas conforme necessário)*
+- **Integrante 4:** [Nome Completo do Aluno 4]
+ *(Adicione mais linhas conforme necessário)*
 
 ## Visão Geral do Projeto
 
