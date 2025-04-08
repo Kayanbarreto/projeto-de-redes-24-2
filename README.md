@@ -15,6 +15,7 @@ Este projeto implementa um sistema cliente-servidor que realiza a transferência
 - Integrante 1: [Nome do Aluno 1]
 - Integrante 2: [Nome do Aluno 2]
 - Integrante 3: [Nome do Aluno 3]
+- Integrante 4: [Nome do Aluno 4]
 
 ---
 
