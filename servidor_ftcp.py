@@ -10,6 +10,25 @@ CONFIG = {
     "FILE_B": "b.txt"
 }
 
+BUFFER_SIZE = 1024
+
+def send_file_with_ack(conn, file_path):
+    with open(file_path, 'rb') as f:
+        while True:
+            chunk = f.read(BUFFER_SIZE)
+            if not chunk:
+                conn.sendall(b"END")  
+                print("Fim do arquivo enviado.")
+                break
+            conn.sendall(chunk) 
+            print("Segmento enviado, aguardando ACK...")
+            ack = conn.recv(BUFFER_SIZE).decode('utf-8') 
+            if ack == "ACK":
+                print("ACK recebido com sucesso.")
+            else:
+                print("ACK não recebido. Reenviando o segmento.")
+                conn.sendall(chunk)  
+
 def handle_udp_negotiation():
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_sock.bind(('0.0.0.0', CONFIG["UDP_PORT"]))
@@ -42,15 +61,12 @@ def handle_tcp_transfer(conn, addr):
 
         if data.startswith("get,"):
             file_name = data.split(',')[1]
-            if file_name in ["a.txt", "b.txt"]:
-                file_path = CONFIG["FILE_A"] if file_name == "a.txt" else CONFIG["FILE_B"]
-                if os.path.exists(file_path):
-                    with open(file_path, 'rb') as f:
-                        while chunk := f.read(1024):
-                            conn.sendall(chunk)
-                    print(f"Arquivo {file_name} enviado para {addr}")
-                else:
-                    conn.sendall(b"ERROR,ARQUIVO NAO ENCONTRADO")
+            file_path = CONFIG["FILE_A"] if file_name == "a.txt" else CONFIG["FILE_B"]
+            if os.path.exists(file_path):
+                send_file_with_ack(conn, file_path)
+                print(f"Arquivo {file_name} enviado para {addr}")
+            else:
+                conn.sendall("ERROR: Arquivo nao encontrado.".encode('utf-8'))
         elif data.startswith("ftcp_ack,"):
             print(f"ACK recebida de {addr}: {data}")
     finally:
@@ -80,7 +96,7 @@ def tcp_server():
 
 def udp_transfer_server():
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_sock.bind(('0.0.0.0', CONFIG["UDP_TRANSFER_PORT"]))  # Use a nova porta
+    udp_sock.bind(('0.0.0.0', CONFIG["UDP_TRANSFER_PORT"]))  
     print(f"Servidor de transferência UDP escutando na porta {CONFIG['UDP_TRANSFER_PORT']}")
 
     while True:
