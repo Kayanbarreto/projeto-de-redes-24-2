@@ -1,0 +1,3 @@
+Este é o conteúdo do arquivo A.
+Ele será transferido via protocolo FTCP.
+Linha 3: Tudo funcionando corretamente.
