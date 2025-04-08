@@ -1,92 +1,105 @@
 import socket
-import configparser
 import threading
+import os
 
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-UDP_PORT = int(config['CLIENT']['udp_port'])
-TCP_PORT_A = int(config['TRANSFER']['tcp_port_a'])
-TCP_PORT_B = int(config['TRANSFER']['tcp_port_b'])
-
-FILE_PATHS = {
-    "a.txt": config['FILES']['a'],
-    "b.txt": config['FILES']['b']
+CONFIG = {
+    "TCP_PORT": 5001,
+    "UDP_PORT": 5002,  
+    "UDP_TRANSFER_PORT": 5003,  
+    "FILE_A": "a.txt",
+    "FILE_B": "b.txt"
 }
 
-# Envia o arquivo solicitado por TCP
-def handle_tcp_connection(tcp_port, nome_arquivo):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
-        tcp_socket.bind(('', tcp_port))
-        tcp_socket.listen(1)
-        print(f"[TCP] Aguardando conexão na porta {tcp_port} para {nome_arquivo}...")
+def handle_udp_negotiation():
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.bind(('0.0.0.0', CONFIG["UDP_PORT"]))
+    print(f"Servidor de negociação UDP escutando na porta {CONFIG['UDP_PORT']}")
 
-        conn, addr = tcp_socket.accept()
-        with conn:
-            print(f"[TCP] Conexão estabelecida com {addr}")
-            data = conn.recv(1024).decode()
-            print(f"[TCP] Comando recebido: {data}")
-            if data.startswith("get"):
-                _, arquivo = data.split(",")
-                if arquivo in FILE_PATHS:
-                    with open(FILE_PATHS[arquivo], 'rb') as f:
-                        conteudo = f.read()
-                        conn.sendall(conteudo)
-                        print(f"[TCP] Arquivo {arquivo} enviado ({len(conteudo)} bytes)")
+    while True:
+        data, addr = udp_sock.recvfrom(1024)
+        message = data.decode('utf-8')
+        print(f"Mensagem recebida do UDP: {message} de {addr}")
 
-                        conn.shutdown(socket.SHUT_WR)
+        try:
+            command, protocol, file_name = message.split(',')
+            if protocol not in ["TCP", "UDP"]:
+                response = "ERROR,PROTOCOLO INVALIDO,,"
+            elif file_name not in [CONFIG["FILE_A"], CONFIG["FILE_B"]]:
+                response = "ERROR,ARQUIVO NAO ENCONTRADO,,"
+            else:
+                transfer_port = CONFIG["TCP_PORT"] if protocol == "TCP" else CONFIG["UDP_TRANSFER_PORT"]
+                response = f"RESPONSE,{protocol},{transfer_port},{file_name}"
+        except ValueError:
+            response = "ERROR,FORMATO INVALIDO,,"
 
-                    ack = conn.recv(1024).decode()
-                    print(f"[TCP] Confirmação recebida: {ack}")
+        udp_sock.sendto(response.encode('utf-8'), addr)
+
+def handle_tcp_transfer(conn, addr):
+    print(f"Cliente TCP conectado de {addr}")
+    try:
+        data = conn.recv(1024).decode('utf-8')
+        print(f"Mensagem recebida do TCP: {data} de {addr}")
+
+        if data.startswith("get,"):
+            file_name = data.split(',')[1]
+            if file_name in ["a.txt", "b.txt"]:
+                file_path = CONFIG["FILE_A"] if file_name == "a.txt" else CONFIG["FILE_B"]
+                if os.path.exists(file_path):
+                    with open(file_path, 'rb') as f:
+                        while chunk := f.read(1024):
+                            conn.sendall(chunk)
+                    print(f"Arquivo {file_name} enviado para {addr}")
                 else:
-                    conn.sendall(b"ERRO: Arquivo nao encontrado")
-                    print(f"[TCP] Arquivo {arquivo} nao encontrado")
+                    conn.sendall(b"ERROR,ARQUIVO NAO ENCONTRADO")
+        elif data.startswith("ftcp_ack,"):
+            print(f"ACK recebida de {addr}: {data}")
+    finally:
+        conn.close()
+        print(f"Cliente TCP desconectado de {addr}")
 
-# Escuta UDP para negociação
-def udp_negociacao():
-    print("[INICIANDO SERVIDOR UDP]")  
+def handle_udp_transfer(file_name, addr, udp_sock):
+    file_path = CONFIG["FILE_A"] if file_name == "a.txt" else CONFIG["FILE_B"]
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as f:
+            while chunk := f.read(1024):
+                udp_sock.sendto(chunk, addr)
+        print(f"Arquivo {file_name} enviado via UDP para {addr}")
+        udp_sock.sendto(b"END", addr)  
+    else:
+        udp_sock.sendto(b"ERROR,ARQUIVO NAO ENCONTRADO", addr)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-        udp_socket.bind(('', UDP_PORT))
-        print(f"[UDP] Servidor escutando na porta {UDP_PORT}...")
+def tcp_server():
+    tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_sock.bind(('0.0.0.0', CONFIG["TCP_PORT"]))
+    tcp_sock.listen(5)
+    print(f"Servidor TCP escutando na porta {CONFIG['TCP_PORT']}")
 
-        while True:
-            mensagem, addr = udp_socket.recvfrom(1024)
-            decoded = mensagem.decode()
-            print(f"[UDP] Mensagem recebida de {addr}: {decoded}")
+    while True:
+        conn, addr = tcp_sock.accept()
+        threading.Thread(target=handle_tcp_transfer, args=(conn, addr)).start()
 
-            if decoded.startswith("REQUEST"):
-                try:
-                    _, protocolo, nome_arquivo = decoded.split(",")
-                except ValueError:
-                    erro = "ERROR,Formato_invalido"
-                    udp_socket.sendto(erro.encode(), addr)
-                    continue
+def udp_transfer_server():
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.bind(('0.0.0.0', CONFIG["UDP_TRANSFER_PORT"]))  # Use a nova porta
+    print(f"Servidor de transferência UDP escutando na porta {CONFIG['UDP_TRANSFER_PORT']}")
 
-                if protocolo != "TCP":
-                    erro = "ERROR,Protocolo_nao_suportado"
-                    udp_socket.sendto(erro.encode(), addr)
-                    print(f"[UDP] Protocolo não suportado: {protocolo}")
-                    continue
+    while True:
+        data, addr = udp_sock.recvfrom(1024)
+        message = data.decode('utf-8')
+        print(f"Mensagem recebida para transferência UDP: {message} de {addr}")
 
-                if nome_arquivo == "a.txt":
-                    porta_tcp = TCP_PORT_A
-                elif nome_arquivo == "b.txt":
-                    porta_tcp = TCP_PORT_B
-                else:
-                    erro = "ERROR,Arquivo_nao_encontrado"
-                    udp_socket.sendto(erro.encode(), addr)
-                    print(f"[UDP] Arquivo não encontrado: {nome_arquivo}")
-                    continue
+        if message.startswith("get,"):
+            file_name = message.split(',')[1]
+            handle_udp_transfer(file_name, addr, udp_sock)
 
-                resposta = f"RESPONSE,{porta_tcp},{nome_arquivo}"
-                udp_socket.sendto(resposta.encode(), addr)
-                print(f"[UDP] Resposta enviada: {resposta}")
-
-                # Iniciar thread TCP
-                thread_tcp = threading.Thread(target=handle_tcp_connection, args=(porta_tcp, nome_arquivo))
-                thread_tcp.start()
-
-# Início do servidor
 if __name__ == '__main__':
-    udp_negociacao()
+    threading.Thread(target=handle_udp_negotiation, daemon=True).start()
+    threading.Thread(target=tcp_server, daemon=True).start()
+    threading.Thread(target=udp_transfer_server, daemon=True).start()
+
+    print("Servidor FTCP rodando. Pressione Ctrl+C para encerrar.")
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        print("Servidor encerrado.")

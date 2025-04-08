@@ -1,70 +1,62 @@
 import socket
-import configparser
 import os
+import sys
 
-config = configparser.ConfigParser()
-config.read('config.ini')
+SERVER_ADDRESS = "127.0.0.1"
+UDP_PORT = 5002
+DOWNLOAD_DIR = "./downloads"
 
-SERVER_IP = config['CLIENT']['server_ip']
-UDP_PORT = int(config['CLIENT']['udp_port'])
-SAVE_PATH = config['TRANSFER']['save_path']
+def request_file(protocol, file_name):
+    # Cria a pasta de destino se não existir
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    dest_path = os.path.join(DOWNLOAD_DIR, file_name)
 
-# Função para negociar via UDP
-def negociar_udp(nome_arquivo):
-    mensagem = f"REQUEST,TCP,{nome_arquivo}"
-    print(f"[CLIENTE] Enviando mensagem UDP: {mensagem}")
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-        udp_socket.sendto(mensagem.encode(), (SERVER_IP, UDP_PORT))
-        resposta, _ = udp_socket.recvfrom(1024)
-        print(f"[CLIENTE] Resposta UDP recebida: {resposta.decode()}")
-        return resposta.decode()
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    message = f"REQUEST,{protocol},{file_name}"
+    udp_sock.sendto(message.encode('utf-8'), (SERVER_ADDRESS, UDP_PORT))
+    response, _ = udp_sock.recvfrom(1024)
+    response = response.decode('utf-8')
+    print(f"Resposta UDP: {response}")
+    udp_sock.close()
 
-# Função para realizar a transferência via TCP
-def transferir_tcp(tcp_port, nome_arquivo):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
-        tcp_socket.connect((SERVER_IP, tcp_port))
-        print(f"[CLIENTE] Conectado ao servidor TCP na porta {tcp_port}")
-        tcp_socket.sendall(f"get,{nome_arquivo}".encode())
-        print(f"[CLIENTE] Comando enviado: get,{nome_arquivo}")
+    if not response.startswith("RESPONSE"):
+        print("Erro na negociação UDP. Verifique o protocolo ou o arquivo solicitado.")
+        return
 
-        dados_recebidos = b''
-        print("[CLIENTE] Aguardando dados do servidor...")
+    _, _, transfer_port, _ = response.split(',')
 
-        while True:
-            segmento = tcp_socket.recv(1024)
-            if not segmento:
-                print("[CLIENTE] Fim dos dados recebido (socket fechado).")
-                break
-            print(f"[CLIENTE] Segmento recebido: {len(segmento)} bytes")
-            dados_recebidos += segmento
+    if protocol == "TCP":
+        tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp_sock.connect((SERVER_ADDRESS, int(transfer_port)))
+        tcp_sock.sendall(f"get,{file_name}".encode('utf-8'))
 
-        print(f"[CLIENTE] Total de bytes recebidos: {len(dados_recebidos)}")
+        with open(dest_path, 'wb') as f:
+            while True:
+                chunk = tcp_sock.recv(1024)
+                if not chunk:
+                    break
+                f.write(chunk)
 
-        ack = f"ftcp_ack,{len(dados_recebidos)}"
-        tcp_socket.sendall(ack.encode())
-        print(f"[CLIENTE] Confirmação enviada: {ack}")
+        print(f"Arquivo {file_name} recebido com sucesso via TCP.")
+        tcp_sock.sendall(f"ftcp_ack,{os.path.getsize(dest_path)}".encode('utf-8'))
+        tcp_sock.close()
 
-    return dados_recebidos
+    elif protocol == "UDP":
+        udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_sock.sendto(f"get,{file_name}".encode('utf-8'), (SERVER_ADDRESS, int(transfer_port)))
+
+        with open(dest_path, 'wb') as f:
+            while True:
+                chunk, _ = udp_sock.recvfrom(1024)
+                if chunk == b"END":
+                    break
+                f.write(chunk)
+
+        print(f"Arquivo {file_name} recebido com sucesso via UDP.")
+        udp_sock.close()
+        sys.exit(0)
 
 if __name__ == '__main__':
-    arquivo = input("Qual arquivo deseja? (a.txt ou b.txt): ").strip()
-
-    resposta = negociar_udp(arquivo)
-
-    if resposta.startswith("RESPONSE"):
-        _, porta_tcp_str, nome_arquivo = resposta.split(",")
-        porta_tcp = int(porta_tcp_str)
-        print(f"[CLIENTE] Iniciando transferência de {nome_arquivo} pela porta TCP {porta_tcp}")
-        conteudo = transferir_tcp(porta_tcp, nome_arquivo)
-
-        try:
-            os.makedirs(SAVE_PATH, exist_ok=True)
-            caminho_completo = os.path.join(SAVE_PATH, nome_arquivo)
-            with open(caminho_completo, 'wb') as f:
-                f.write(conteudo)
-            print(f"[CLIENTE] Arquivo {nome_arquivo} salvo com sucesso em '{caminho_completo}'")
-        except Exception as e:
-            print(f"[CLIENTE] ERRO ao salvar o arquivo: {e}")
-    else:
-        print("[CLIENTE] Erro na negociação:", resposta)
-
+    protocol = input("Escolha o protocolo (TCP/UDP): ").strip().upper()
+    file_name = input("Escolha o arquivo (a.txt/b.txt): ").strip()
+    request_file(protocol, file_name)
