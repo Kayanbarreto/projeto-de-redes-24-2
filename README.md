@@ -36,7 +36,6 @@ projeto-de-redes/
 ---
 
 ## ⚙️ Como Executar
-## ⚙️ Como Executar
 
 ### 1. Configuração
 
