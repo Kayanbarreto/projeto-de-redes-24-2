@@ -1,0 +1,3 @@
+Arquivo B foi solicitado.
+Transferência realizada com sucesso utilizando TCP.
+Linha 3: Protocolo FTCP em ação.
