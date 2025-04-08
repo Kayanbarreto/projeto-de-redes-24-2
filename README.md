@@ -1,48 +1,140 @@
 # Projeto: Protocolo de Transferência de Arquivos Personalizado – FTCP
 
-Este repositório contém a implementação do projeto **FTCP (File Transfer Custom Protocol)**, um sistema cliente-servidor para transferência de arquivos utilizando os protocolos **TCP e UDP** de forma customizada, conforme especificado nas instruções.
+Projeto de Redes para implementação de um protocolo personalizado de transferência de arquivos utilizando UDP e TCP.
 
-## Equipe
+---
 
-- **Integrante 1:** [Nome Completo do Aluno 1]  
-- **Integrante 2:** [Nome Completo do Aluno 2] 
-- **Integrante 3:** [Nome Completo do Aluno 3]  
-- **Integrante 4:** [Nome Completo do Aluno 4]
- *(Adicione mais linhas conforme necessário)*
+## 📚 Visão Geral
 
-## Visão Geral do Projeto
+Este projeto implementa um sistema cliente-servidor que realiza a transferência de arquivos utilizando um protocolo próprio (FTCP). A negociação inicial acontece via **UDP**, e a transferência ocorre via **TCP**, com confirmação de recebimento.
 
-O objetivo principal é desenvolver um cliente e um servidor que se comunicam através de um protocolo próprio (**FTCP**). A negociação inicial ocorre via **UDP**, onde o cliente requisita um arquivo (`a.txt` ou `b.txt`) e especifica o protocolo de transferência (**obrigatoriamente TCP nesta versão**). O servidor responde com a porta **TCP** designada para a transferência. Em seguida, o cliente estabelece uma conexão TCP nessa porta, solicita o arquivo, o recebe e confirma o recebimento antes de encerrar a conexão.
+---
 
-## Entregáveis
+## 👨‍💻 Equipe
 
-A entrega final do projeto consiste nos itens detalhados na tabela abaixo. Certifique-se de que todos os itens listados para o repositório Git estejam presentes e atualizados na branch principal (**main** ou **master**) antes da data final.
+- Integrante 1: [Nome do Aluno 1]
+- Integrante 2: [Nome do Aluno 2]
+- Integrante 3: [Nome do Aluno 3]
 
-| Item # | Descrição                                 | Forma de Entrega          |
-|--------|--------------------------------------------|----------------------------|
-| 1      | **Código Fonte** (Cliente e Servidor)      | Repositório Git (este)     |
-| 2      | **Arquivos de Teste** (`a.txt` e `b.txt`)  | Repositório Git (este)     |
-| 3      | **Arquivo de Configuração** (`config.ini`) | Repositório Git (este)     |
-| 4      | **Arquivo de Captura de Tráfego** (`.pcapng`) | Repositório Git (este) |
-| 5      | **Relatório de Análise** (PDF ou Markdown) | Google Classroom (1 por equipe) |
+---
 
-## Documentação Importante
+## 🗂️ Estrutura do Projeto
 
-Consulte os seguintes arquivos neste repositório para obter detalhes completos sobre cada parte do projeto:
+```
+projeto-de-redes/
+├── cliente_ftcp.py
+├── servidor_ftcp.py
+├── config.ini
+├── a.txt
+├── b.txt
+├── downloads/
+│   └── (arquivos recebidos)
+├── README.md
+```
 
-- 📄 **[Especificação do Protocolo FTCP](#)**: Descreve em detalhes as etapas de negociação (UDP) e transferência (TCP), os formatos das mensagens e o fluxo de comunicação esperado entre cliente e servidor.
-- 🦈 **[Tutorial de Análise com Wireshark](#)**: Contém um guia passo a passo sobre como usar o Wireshark para analisar o arquivo de captura (`.pcap`), incluindo exemplos com DHCP/DNS e instruções específicas para analisar o tráfego do seu protocolo FTCP.
-- 📝 **[Instruções para o Relatório](#)**: Apresenta a estrutura e o conteúdo esperado para o relatório final, focando na análise do protocolo e do tráfego de rede capturado.
-- 🐍 **[Exemplo de servidor/cliente (Python)](#)**: Um código de exemplo em Python demonstrando um servidor e cliente "echo" que opera simultaneamente em TCP e UDP.
+---
 
-## Como Executar (Exemplo Básico)
+## ⚙️ Como Executar
+## ⚙️ Como Executar
 
-1. **Configuração**: Certifique-se de que o arquivo `config.ini` está presente na mesma pasta dos scripts e configurado corretamente com as portas desejadas e os caminhos para os arquivos `a.txt` e `b.txt`.
+### 1. Configuração
 
-2. **Iniciar o Servidor**:
+Verifique o arquivo `config.ini` com os seguintes parâmetros:
 
-   ```bash
-   python servidor_ftcp.py
-3. **Executar o Cliente (em outro terminal)**:
-   ```bash
-   python cliente_ftcp.py a.txt
+```ini
+[CLIENT]
+server_ip = 127.0.0.1
+udp_port = 5002
+
+[FILES]
+a = ./a.txt
+b = ./b.txt
+
+[TRANSFER]
+save_path = ./downloads/
+tcp_port_a = 5001
+tcp_port_b = 5003
+```
+
+Certifique-se de que os arquivos `a.txt` e `b.txt` existem e têm conteúdo.
+
+---
+
+### 2. Executando o servidor
+
+Abra um terminal na pasta do projeto e execute:
+
+```bash
+python servidor_ftcp.py
+```
+
+Você verá:
+
+```
+[UDP] Servidor escutando na porta 5002...
+```
+
+---
+### 3. Executando o cliente
+
+Abra um segundo terminal e execute:
+
+```bash
+python cliente_ftcp.py
+```
+
+Digite `a.txt` ou `b.txt` quando solicitado.
+
+---
+
+### 4. Resultado Esperado
+
+- O cliente solicita o arquivo via UDP.
+- O servidor responde com a porta TCP.
+- O cliente conecta via TCP e solicita o arquivo.
+- O servidor envia o arquivo e aguarda confirmação.
+- O cliente salva o arquivo na pasta `downloads/`.
+
+---
+
+## 📦 Arquivos de Teste
+
+- `a.txt`: Conteúdo fictício para teste de transferência.
+- `b.txt`: Segundo arquivo de teste.
+
+---
+
+## 📡 Captura com Wireshark (opcional)
+
+Para capturar o tráfego FTCP:
+
+1. Inicie o Wireshark.
+2. Selecione a interface correta (ex: Loopback).
+3. Inicie a gravação.
+4. Execute cliente e servidor normalmente.
+5. Pare e salve a captura como `.pcapng`.
+
+---
+
+## 📌 Observações
+
+- Protocolo FTCP suporta apenas `TCP` nesta versão.
+- Mensagens seguem o formato:
+  - UDP: `REQUEST,TCP,a.txt`
+  - UDP Resposta: `RESPONSE,5001,a.txt`
+  - TCP: `get,a.txt`
+  - Confirmação: `ftcp_ack,<bytes_recebidos>`
+
+---
+
+## ✅ Status
+
+✅ Implementação completa  
+✅ Testes realizados com sucesso  
+✅ Pronto para análise via Wireshark
+
+---
+
+## 📁 Licença
+
+Projeto acadêmico – uso livre para fins educacionais.
