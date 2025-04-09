@@ -12,10 +12,11 @@ Este projeto implementa um sistema cliente-servidor que realiza a transferência
 
 ## 👨‍💻 Equipe
 
-- Integrante 1: [Geovam Gilson Lima da Silva]
-- Integrante 2: [Nome do Aluno 2]
-- Integrante 3: [Nome do Aluno 3]
-- Integrante 4: [Nome do Aluno 4]
+- Integrante 1: [Carlos Henriche Abner de Lucena Leão Gonçalves]
+- Integrante 2: [Geovam Gilson Lima da Silva]
+- Integrante 3: [Hebert Amaro de Araújo Quirino]
+- Integrante 4: [Kayan Marques Barreto]
+- Integrante 5: [Pedro Felipe Alves Bezerra]
 
 ---
 
