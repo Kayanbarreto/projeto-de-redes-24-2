@@ -21,8 +21,17 @@ Este projeto implementa um sistema cliente-servidor que realiza a transferência
 ---
 
 ## 🗂️ Estrutura do Projeto
-
-```projeto-de-redes/ ├── cliente_ftcp.py ├── servidor_ftcp.py ├── config.ini ├── a.txt ├── b.txt ├── downloads/ │ └── (arquivos recebidos) ├── README.md```
+```
+projeto-de-redes/
+├── cliente_ftcp.py
+├── servidor_ftcp.py
+├── config.ini
+├── a.txt
+├── b.txt
+├── downloads/
+│   └── (arquivos recebidos)
+├── README.md
+```
 
 ---
 
