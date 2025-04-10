@@ -76,6 +76,7 @@ python cliente_ftcp.py
 ```
 Digite `a.txt` ou `b.txt` quando solicitado.
 
+
 4. Resultado Esperado
 O cliente solicita o arquivo via UDP.
 
@@ -87,12 +88,14 @@ O servidor envia o arquivo e aguarda confirmação.
 
 O cliente salva o arquivo na pasta `downloads/.`
 
-📦 Arquivos de Teste
+
+# 📦 Arquivos de Teste
 `a.txt`: Conteúdo fictício para teste de transferência.
 
 `b.txt`: Segundo arquivo de teste.
 
-📡 Captura com Wireshark (opcional)
+
+# 📡 Captura com Wireshark (opcional)
 Para capturar o tráfego FTCP:
 
 Inicie o Wireshark.
@@ -105,7 +108,8 @@ Execute cliente e servidor normalmente.
 
 Pare e salve a captura como .pcapng.
 
-📌 Observações
+
+# 📌 Observações
 Protocolo FTCP suporta apenas TCP nesta versão.
 
 Mensagens seguem o formato:
@@ -119,5 +123,5 @@ TCP: get,a.txt
 Confirmação: ftcp_ack,<bytes_recebidos>
 
 
-📁 Licença
+# 📁 Licença
 Projeto acadêmico – uso livre para fins educacionais.
